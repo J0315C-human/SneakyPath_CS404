@@ -1,3 +1,4 @@
+from time import time
 from array import *
 from copy import deepcopy
 
@@ -5,7 +6,6 @@ def makeEdgeWeightMatrixAndFlowList(file):
     global N
     firstLine = file.readline().split(",")
     N, start, end = int(firstLine[0].strip()), int(firstLine[1].strip()), int(firstLine[2].strip())
-    print(N, start, end)
 
     Matrix = newIntegerGraph(N)
     Flows = dict()
@@ -27,14 +27,9 @@ def makeEdgeWeightMatrixAndFlowList(file):
 
 def FloydWarshall(edgeMatrix):
     #initialize empty array 
-    Paths = []
-    for i in range(0, N):
-        row = []
-        for j in range(0, N):
-            row.append([])
-        Paths.append(row)
+    Paths = newIntegerGraph(N, [])
 
-    #make a copy of edges because it will change throughout the algorithm (want to keep original)
+    #make local copy of edges because it will change throughout the algorithm (want to keep original)
     E = deepcopy(edgeMatrix)
     #for each > = zero degree edge, add path [a, b] to pathMatrix
     for a in range(0, N):
@@ -65,32 +60,36 @@ def FloydWarshall(edgeMatrix):
 
     return Paths
 
-def GetEdgeFlows(minPaths, Flows):
+def GetEdgeLoads(originalEdgeWeights, minPaths, Flows):
 
-    EdgeFlows = newIntegerGraph(N, -1)
+    Loads = newIntegerGraph(N, 0)
 
+    #using the flow for each edge pair, calculate individual edge Loads.
     for i in range(0, N):
         for j in range(0, N):
-            for p in range(0, len(minPaths[i][j])):
-                #Go between each set of two nodes for the path
             if (i+1, j+1) in Flows:
-                if EdgeFlows[i][j] == -1:
-                    EdgeFlows[i][j] = Flows[(i+1, j+1)]
-                else:
-                    EdgeFlows[i][j] += Flows[(i+1, j+1)]
+                #for each edge in the path, add the flow
+                for k in range(0, len(minPaths[i][j]) - 1):
+                    a = minPaths[i][j][k] - 1
+                    b = minPaths[i][j][k+1] - 1
+                    Loads[a][b] += Flows[(i+1, j+1)]
+            if originalEdgeWeights[i][j] == -1:
+                if Loads[i][j] != 0:
+                    print("Load found for nonexistent edge! Details: ", i+1, ":", j+1, minPaths[i][j])
+                Loads[i][j] = -1
 
-    return EdgeFlows
+    return Loads
 
 def GetPathHopLengths(Paths):
-    hops = newIntegerGraph(N, 0)
+    hops = newIntegerGraph(N, -1)
     
     for i in range(0, N):
         for j in range(0, N):
             hopCount = len(Paths[i][j])
-            if hopCount > 0:
-                hops[i][j] = hopCount - 1
+            hops[i][j] = hopCount - 1
     return hops
 
+# Print utility function
 def prettyMatrix(M, colWidth = 15):
     s = "\n"
     for i in range(0, N):
@@ -103,37 +102,42 @@ def prettyMatrix(M, colWidth = 15):
         s += (("{: >"+ str(colWidth)+"}") * N).format(*line) + "\n"
     return s
 
+# Utility function for empty array list (for integers) or List of dynamic Lists (for paths)
 def newIntegerGraph(size, default = -1):
     G = []
     for i in range(0, size):
-        G.append(array('i', [default]*size))
-        G[i][i] = 0
+        if default == []:
+            row = []
+            for j in range(0, size):
+                row.append([])
+            G.append(row)
+        else:
+            G.append(array('i', [default]*size))
+            G[i][i] = 0
     return G
 
 ##### MAIN SECTION ############
-from time import time
 
 input(" ")
 t0 = time()
-Data = open("TestInput.txt")
+Data = open("Input6.txt")
 
 EdgeWeights, Flows = makeEdgeWeightMatrixAndFlowList(Data)
 Data.close()
-print(Flows)
 
 MinWeightPaths = FloydWarshall(EdgeWeights)
 MinWeightHops = GetPathHopLengths(MinWeightPaths)
-EdgeFlows = GetEdgeFlows(MinWeightPaths, Flows)
+Loads = GetEdgeLoads(EdgeWeights, MinWeightPaths, Flows)
+MinFlowPaths = FloydWarshall(Loads)
+MinFlowHops = GetPathHopLengths(MinFlowPaths)
 
 
-
-
-print("Original Edge Weights: ", prettyMatrix(EdgeWeights, 5))
-print("Minimum Paths: ",prettyMatrix(MinWeightPaths))
-print("Minimum Path Hops (number of edges): ", prettyMatrix(MinWeightHops, 5))
-print("Minimum Path Hops (number of edges): ", prettyMatrix(EdgeFlows, 5))
-
-#==== Now go on and find Flow amounts for each Edge, using Flows.
+print("Original Edge Weights: ", prettyMatrix(EdgeWeights, 3))
+print("Minimum Paths by Edge Weight (Distance): ", prettyMatrix(MinWeightPaths))
+print("Hops for these paths (number of edges): ", prettyMatrix(MinWeightHops, 2))
+print("Edge Loads: ", prettyMatrix(Loads, 5))
+print("Minimum Paths by Edge Loads (Traffic): ", prettyMatrix(MinFlowPaths))
+print("Hops for these paths (number of edges): ", prettyMatrix(MinFlowHops, 2))
 
 t1= time()
 

@@ -32,7 +32,8 @@
     <Content Include="Input4.txt" />
     <Content Include="Input5.txt" />
     <Content Include="Input6.txt" />
-    <Content Include="TestInput.txt" />
+    <Content Include="TestInput0.txt" />
+    <Content Include="TestInput1.txt" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
